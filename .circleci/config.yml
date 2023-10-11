@@ -17,9 +17,43 @@ jobs:
       - run:
           name: Run tests
           command: pytest
-
+  build:
+    environment:
+      IMAGE_NAME: pimanov/flask_app
+    docker:
+      - image: cimg/deploy:2023.08
+    steps:
+      - checkout
+      - setup_remote_docker
+      - run:
+          name: Build Docker image
+          command: docker build -t $IMAGE_NAME:latest .
+  publish-latest:
+    environment:
+      IMAGE_NAME: pimanov/flask_app
+    docker:
+      - image: cimg/deploy:2023.08
+    steps:
+      - setup_remote_docker
+      - run:
+          name: Publish Docker Image to Docker Hub
+          command: |
+            echo "$DOCKER_PASS" | docker login -u "$DOCKER_LOGIN" --password-stdin
+            docker push $IMAGE_NAME:latest
 
 workflows:
-  sample:
+  pipeline:
     jobs:
       - test
+      - build:
+          requires:
+            - test
+          filters:
+            branches:
+              only: master
+      - publish-latest:
+          requires:
+            - build
+          filters:
+            branches:
+              only: master
