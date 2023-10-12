@@ -55,16 +55,25 @@ jobs:
 workflows:
   pipeline:
     jobs:
-      - test
+      - test:
+          filters:
+            branches:
+              only: master
+            tags:
+              only: /^v\d+\.\d+\.\d+$/
       - build:
-          requires:
-            - "test"
           filters:
+            branches:
+              ignore: /.*/
             tags:
               only: /^v\d+\.\d+\.\d+$/
+          requires:
+            - test
       - publish-latest:
-          requires:
-            - "build"
           filters:
+            branches:
+              ignore: /.*/
             tags:
               only: /^v\d+\.\d+\.\d+$/
+          requires:
+            - build
