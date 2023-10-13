@@ -58,7 +58,7 @@ workflows:
       - test:
           filters:
             branches:
-              only: master
+              only: /.*/
             tags:
               only: /^v\d+\.\d+\.\d+$/
       - build:
