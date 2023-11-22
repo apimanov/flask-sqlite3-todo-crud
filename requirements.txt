@@ -3,3 +3,4 @@ flask-sqlalchemy
 pytest
 flask-restful
 flask-apispec
+APISpec

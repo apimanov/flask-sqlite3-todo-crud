@@ -7,7 +7,6 @@ from apispec.ext.marshmallow import MarshmallowPlugin
 from flask_apispec.extension import FlaskApiSpec
 from flask_apispec.views import MethodResource
 from flask_apispec import marshal_with, doc, use_kwargs
-
 from flask_sqlalchemy import SQLAlchemy
 
 import json
@@ -18,15 +17,14 @@ db = SQLAlchemy(app)
 api = Api(app)
 
 app.config.update({
-    'APISPEC_SPEC': APISpec(
-        title='CRUD example Project',
-        version='v1',
-        plugins=[MarshmallowPlugin()],
-        openapi_version='2.0.0'
-    ),
-    'APISPEC_SWAGGER_URL': '/swagger/',  # URI to access API Doc JSON 
-    'APISPEC_SWAGGER_UI_URL': '/swagger-ui/'  # URI to access UI of API Doc
-})
+            'APISPEC_SPEC': APISpec(
+                title='tasks crud',
+                version='v1',
+                openapi_version='2.0',
+                plugins=[MarshmallowPlugin()],
+            ),
+            'APISPEC_SWAGGER_URL': '/swagger/',
+        })
 docs = FlaskApiSpec(app)
 
 class Todo(db.Model):
@@ -67,58 +65,52 @@ def update():
         db.session.commit()
     return redirect(url_for("index"))
 
-
 class TodoSchema(Schema):
-    id = fields.Int()
-    text = fields.Str()
-    complete = fields.Bool()
-
+    completed = fields.Bool(description="Признак активности", required=False, example=False)
+    id = fields.Int(description="Номер записи", required=False, example=1)
+    description = fields.Str(metadata={'description':"Название задачи", 'example':"eat good food"}, required = True)
+    
 class Tasks(MethodResource, Resource):
-    @doc(description='CRUD example API.', tags=['Task'])
+  
+
+    @doc(description='get tasks list', tags=['Task'])
     @marshal_with(TodoSchema(many=True),code=200)
     def get(self):
-        '''
-        Get method represents a GET API method
-        '''
         todos = Todo.query.filter(Todo.complete == False)
-        task_list = [{'id': todo.id, 'description': todo.text, 'completed':todo.complete} for todo in todos]
+        task_list = [{'id': todo.id, 'description': todo.text, 'completed': todo.complete} for todo in todos]
         return task_list
     
     class PutTodoSchema(Schema):
-        text = fields.String(required=True)
+        #description = fields.String(metadata={'description': 'Название задачи', 'example': 'eat good food'})
+        description = fields.Str(metadata={"description":"Название задачи", "example":"test task"},required=True)
     
     class DeleteTodoSchema(Schema):
-        id = fields.Integer(required=True)
+        id = fields.Int(metadata={'x-example': 1,'id': "id записи в бд"}, required=True)
 
-    class Errors(Schema):
+    class Message(Schema):
         message = fields.String()
 
-    @doc(description='CRUD example API.', tags=['Task'])
-    @marshal_with(TodoSchema,code=200)
-    @marshal_with(Errors, code='500')
-    @use_kwargs(PutTodoSchema, location=('json'))
-    def put(self):
-        json_data = request.get_json(force=True)
-        todo = Todo(text=json_data['text'], complete=False)
+    @doc(description='add new task', tags=['Task'],consumes=['application/json'])
+    @marshal_with(TodoSchema, code=200)
+    @use_kwargs(PutTodoSchema)
+    def put(self, description):
+        todo = Todo(text=description, complete=False)
         try:
             db.session.add(todo)
             db.session.commit()
         except:
             return ({"message": "failed to save value to database"}, 500)
-        return (todo.to_json(), 200)
+        return ({'id': todo.id, 'description': todo.text, 'completed': todo.complete}, 200)
 
-    @doc(description='CRUD example API.', tags=['Task'])
-    @marshal_with(TodoSchema,code=200)
-    @use_kwargs(DeleteTodoSchema, location=('json'))    
-    def delete(self):
-        json_data = request.get_json(force=True)
-        ids = [int(i.get('id')) for i in json_data]
-        # Create a session
-        with app.app_context():
-            with db.session.begin():
-                db.session.query(Todo).filter(Todo.id.in_(ids)).update({'complete': True}, synchronize_session='fetch')
-            db.session.commit()
-        return ('data updated',200)
+    @doc(description='complete task.', tags=['Task'])
+    @marshal_with(Message, code=200)
+    @use_kwargs(DeleteTodoSchema, location='query')    
+    def delete(self,id):
+        #ids = [int(i.get('id')) for i in json_data]
+        num =  id
+        db.session.query(Todo).filter(Todo.id==num).delete()
+        db.session.commit()
+        return {'message':'data updated'}
 
 
 api.add_resource(Tasks, '/api/task')

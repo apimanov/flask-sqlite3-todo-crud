@@ -1,0 +1,82 @@
+definitions:
+  Message:
+    properties:
+      message:
+        type: string
+    type: object
+  PutTodo:
+    properties:
+      description:
+        description: Название задачи
+        example: test task
+        type: string
+    required:
+      - description
+    type: object
+  Todo:
+    properties:
+      completed:
+        description: Признак активности
+        example: false
+        type: boolean
+      description:
+        description: Название задачи
+        example: eat good food
+        type: string
+      id:
+        description: Номер записи
+        example: 1
+        type: integer
+    required:
+      - description
+    type: object
+info:
+  title: tasks crud
+  version: v1
+paths:
+  /api/task:
+    delete:
+      description: complete task.
+      parameters:
+        - in: query
+          name: id
+          required: true
+          type: integer
+          x-example: 1
+      responses:
+        '200':
+          description: ''
+          schema:
+            $ref: '#/definitions/Message'
+      tags:
+        - Task
+    get:
+      description: get tasks list
+      parameters: []
+      responses:
+        '200':
+          description: ''
+          schema:
+            items:
+              $ref: '#/definitions/Todo'
+            type: array
+      tags:
+        - Task
+    put:
+      consumes:
+        - application/json
+      description: add new task
+      parameters:
+        - in: body
+          name: body
+          required: false
+          schema:
+            $ref: '#/definitions/PutTodo'
+      responses:
+        '200':
+          description: ''
+          schema:
+            $ref: '#/definitions/Todo'
+      tags:
+        - Task
+swagger: '2.0'
